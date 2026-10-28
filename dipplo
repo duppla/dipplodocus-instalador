@@ -22,6 +22,7 @@ if [ "$(gh api user/memberships/orgs/duppla --jq .state 2>/dev/null)" = pending 
     && echo "Aceptada tu invitación a Duppla en GitHub." \
     || para "Tienes una invitación de Duppla en GitHub sin aceptar y no pude aceptarla sola: ábrela en https://github.com/orgs/duppla/invitation, dale Join y vuelve a pegar la línea."
 fi
-gh api repos/duppla/duppla-plugins >/dev/null 2>&1 \
+otra() { "$@" || { sleep 5; "$@"; } || { sleep 15; "$@"; }; }  # GitHub a veces se corta
+otra gh api repos/duppla/duppla-plugins >/dev/null 2>&1 \
   || para "Tu GitHub (${YO:-sin sesión}) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login"
 bash <(gh api -H "Accept: application/vnd.github.raw" repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalar.sh) "$CUENTA"
