@@ -4,7 +4,7 @@
 # Trae Homebrew y gh si faltan, entra a GitHub, acepta la invitación a duppla si está pendiente y sigue con el
 # instalador de verdad, que es privado (duppla-plugins). Aquí no hay llaves ni datos.
 set -o pipefail
-VERSION=feef1661f863fef590237473b403deaaabc45699  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+VERSION=946af22c9bec945266bb7c278dfe4170cc3b011f  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
 CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
 para() { printf '\n\033[1;31m%s\033[0m\nMándale un pantallazo de esto a Felipe.\n' "$1"; exit 1; }
 [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
