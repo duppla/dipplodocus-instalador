@@ -3,31 +3,35 @@
 #   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/dipplo) <cuenta>@duppla.co
 # Trae Homebrew y gh si faltan, entra a GitHub, acepta la invitación a duppla si está pendiente y sigue con el
 # instalador de verdad, que es privado (duppla-plugins). Aquí no hay llaves ni datos.
-set -o pipefail
-VERSION=946af22c9bec945266bb7c278dfe4170cc3b011f  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
-CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
-para() { printf '\n\033[1;31m%s\033[0m\nMándale un pantallazo de esto a Felipe.\n' "$1"; exit 1; }
-[[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
+# Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
+main() {
+  set -o pipefail
+  VERSION=8d6fac1e0d5bc26e1c8cb20d5041c9fb2f3a5886  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+  CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
+  para() { printf '\n\033[1;31m%s\033[0m\nMándale un pantallazo de esto a Felipe.\n' "$1"; exit 1; }
+  [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
 
-if ! command -v brew >/dev/null; then
-  printf '\033[1;35mInstalando Homebrew: te pide la contraseña del Mac (no se ve mientras la escribes).\033[0m\n'
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || para "No se pudo instalar Homebrew."
-fi
-eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
-command -v gh >/dev/null || brew install gh >/dev/null || para "No se pudo instalar gh."
-if ! gh auth status -h github.com >/dev/null 2>&1; then
-  printf '\033[1;35mEntra a GitHub con tu cuenta de Duppla: copia el código de 8 letras y pégalo en el navegador.\033[0m\n'
-  gh auth login -h github.com -p https -w || para "No se pudo entrar a GitHub."
-fi
-YO=$(gh api user --jq .login 2>/dev/null)
-if [ "$(gh api user/memberships/orgs/duppla --jq .state 2>/dev/null)" = pending ]; then
-  gh api -X PATCH user/memberships/orgs/duppla -f state=active >/dev/null 2>&1 \
-    && echo "Aceptada tu invitación a Duppla en GitHub." \
-    || para "Tienes una invitación de Duppla en GitHub sin aceptar y no pude aceptarla sola: ábrela en https://github.com/orgs/duppla/invitation, dale Join y vuelve a pegar la línea."
-fi
-otra() { "$@" || { sleep 5; "$@"; } || { sleep 15; "$@"; }; }  # GitHub a veces se corta
-otra gh api repos/duppla/duppla-plugins >/dev/null 2>&1 \
-  || para "Tu GitHub (${YO:-sin sesión}) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login"
-INSTALADOR=$(otra gh api -H "Accept: application/vnd.github.raw" "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalar.sh?ref=$VERSION") \
-  || para "No se pudo bajar el instalador de Dipplo. Revisa el internet o la VPN y vuelve a pegar la línea."
-DIPPLO_VERSION="$VERSION" bash -c "$INSTALADOR" instalar "$CUENTA"  # mismo commit para las herramientas
+  if ! command -v brew >/dev/null; then
+    printf '\033[1;35mInstalando Homebrew: te pide la contraseña del Mac (no se ve mientras la escribes).\033[0m\n'
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || para "No se pudo instalar Homebrew."
+  fi
+  eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
+  command -v gh >/dev/null || brew install gh >/dev/null || para "No se pudo instalar gh."
+  if ! gh auth status -h github.com >/dev/null 2>&1; then
+    printf '\033[1;35mEntra a GitHub con tu cuenta de Duppla: copia el código de 8 letras y pégalo en el navegador.\033[0m\n'
+    gh auth login -h github.com -p https -w || para "No se pudo entrar a GitHub."
+  fi
+  YO=$(gh api user --jq .login 2>/dev/null)
+  if [ "$(gh api user/memberships/orgs/duppla --jq .state 2>/dev/null)" = pending ]; then
+    gh api -X PATCH user/memberships/orgs/duppla -f state=active >/dev/null 2>&1 \
+      && echo "Aceptada tu invitación a Duppla en GitHub." \
+      || para "Tienes una invitación de Duppla en GitHub sin aceptar y no pude aceptarla sola: ábrela en https://github.com/orgs/duppla/invitation, dale Join y vuelve a pegar la línea."
+  fi
+  otra() { "$@" || { sleep 5; "$@"; } || { sleep 15; "$@"; }; }  # GitHub a veces se corta
+  otra gh api repos/duppla/duppla-plugins >/dev/null 2>&1 \
+    || para "Tu GitHub (${YO:-sin sesión}) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login"
+  INSTALADOR=$(otra gh api -H "Accept: application/vnd.github.raw" "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalar.sh?ref=$VERSION") \
+    || para "No se pudo bajar el instalador de Dipplo. Revisa el internet o la VPN y vuelve a pegar la línea."
+  DIPPLO_VERSION="$VERSION" bash -c "$INSTALADOR" instalar "$CUENTA"  # mismo commit para las herramientas
+}
+main "$@"
