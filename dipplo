@@ -1,10 +1,13 @@
 #!/bin/bash
 # Primer pedacito, público, del instalador de Dipplo. Se corre con UNA línea en la Terminal:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo) <cuenta>@duppla.co
+#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/v1/dipplo) <cuenta>@duppla.co
 # Trae Homebrew y gh si faltan, entra a GitHub, acepta la invitación a duppla si está pendiente y sigue con el
 # instalador de verdad, que es privado (duppla-plugins). Aquí no hay llaves ni datos.
-CUENTA="${1:?falta tu cuenta @duppla.co al final de la línea}"
+set -o pipefail
+VERSION=9ba5a61a82d049a032c650ea9bd1b560c31830ab  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
 para() { printf '\n\033[1;31m%s\033[0m\nMándale un pantallazo de esto a Felipe.\n' "$1"; exit 1; }
+[[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
 
 if ! command -v brew >/dev/null; then
   printf '\033[1;35mInstalando Homebrew: te pide la contraseña del Mac (no se ve mientras la escribes).\033[0m\n'
@@ -25,4 +28,6 @@ fi
 otra() { "$@" || { sleep 5; "$@"; } || { sleep 15; "$@"; }; }  # GitHub a veces se corta
 otra gh api repos/duppla/duppla-plugins >/dev/null 2>&1 \
   || para "Tu GitHub (${YO:-sin sesión}) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login"
-bash <(gh api -H "Accept: application/vnd.github.raw" repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalar.sh) "$CUENTA"
+INSTALADOR=$(otra gh api -H "Accept: application/vnd.github.raw" "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalar.sh?ref=$VERSION") \
+  || para "No se pudo bajar el instalador de Dipplo. Revisa el internet o la VPN y vuelve a pegar la línea."
+bash -c "$INSTALADOR" instalar "$CUENTA"

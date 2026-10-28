@@ -5,5 +5,5 @@ Instaladores de las herramientas internas de Duppla, en una línea. Este repo es
 Dipplo:
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo) <cuenta>@duppla.co
+bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/v1/dipplo) <cuenta>@duppla.co
 ```
