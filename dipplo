@@ -1,6 +1,6 @@
 #!/bin/bash
 # Primer pedacito, público, del instalador de Dipplo. Se corre con UNA línea en la Terminal:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/v1/dipplo) <cuenta>@duppla.co
+#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/dipplo) <cuenta>@duppla.co
 # Trae Homebrew y gh si faltan, entra a GitHub, acepta la invitación a duppla si está pendiente y sigue con el
 # instalador de verdad, que es privado (duppla-plugins). Aquí no hay llaves ni datos.
 set -o pipefail
