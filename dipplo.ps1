@@ -4,14 +4,14 @@
 # acepta la invitación a duppla si está pendiente y sigue con el instalador de verdad, que es privado (duppla-plugins).
 # Aquí no hay llaves ni datos. Nunca hace exit: cerraría la ventana y la persona no vería el error.
 & {
-  $VERSION = '01d391bec001f5c2c1ca86a3322f0aa557423719'  # commit del instalador privado en duppla-plugins: solo corre lo probado
+  $VERSION = '2202b7cf47118173e6ba2c114c64b41df19bc8f4'  # commit del instalador privado en duppla-plugins: solo corre lo probado
   [Console]::OutputEncoding = [Text.Encoding]::UTF8  # lo que devuelve gh (el instalador, con tildes) llega bien
-  function Para($m) { Write-Host "`n$m" -ForegroundColor Red; Write-Host 'Mándale un pantallazo de esto a Felipe.'; throw 'dipplo' }
+  function Para($m) { Write-Host "`n  x $m" -ForegroundColor Red; Write-Host '  Mándale un pantallazo de esto a Felipe.'; throw 'dipplo' }
   function Refrescar { $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User') }
   function Otra([scriptblock]$b) { foreach ($s in 0, 5, 15) { Start-Sleep $s; $r = & $b; if ($LASTEXITCODE -eq 0) { return $r } } }  # GitHub a veces se corta
   function Instalar($cmd, $id) {
     if (Get-Command $cmd -ErrorAction SilentlyContinue) { return }
-    Write-Host "Instalando $id (si Windows pregunta si permites cambios, dale Sí)..." -ForegroundColor Magenta
+    Write-Host "  · Instalando $id (si Windows pregunta si permites cambios, dale Sí)" -ForegroundColor DarkGray
     winget install --id $id -e --silent --accept-package-agreements --accept-source-agreements | Out-Null
     Refrescar
     if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { Para "No se pudo instalar $id. Cierra PowerShell, ábrelo de nuevo y vuelve a pegar la línea." }
@@ -19,6 +19,8 @@
   try {
     $CUENTA = "$env:DIPPLO_CUENTA".Trim().ToLower()
     if ($CUENTA -notmatch '^[a-z0-9._-]+@duppla\.co$') { Para "La cuenta `"$CUENTA`" no es una cuenta @duppla.co válida. Pega la línea completa, con tu cuenta adentro." }
+    $global:DIPPLO_INICIO = Get-Date
+    Write-Host "`nInstalando Dipplo" -ForegroundColor Magenta -NoNewline; Write-Host " para $CUENTA. La primera vez tarda unos 15 minutos."
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Para 'Falta winget: instala «App Installer» desde la Microsoft Store y vuelve a pegar la línea.' }
     Instalar git Git.Git
     Instalar gh GitHub.cli
