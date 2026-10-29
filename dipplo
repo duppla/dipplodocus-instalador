@@ -6,7 +6,7 @@
 # Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
 main() {
   set -o pipefail
-  VERSION=3eb7a23be13bbb97699f15cfeba6ffbf9ba453d8  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+  VERSION=831d1175775c3af0a9dc520bcc0f8e6c48404b0f  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
   CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
   para() { printf '\n\033[1;31m%s\033[0m\nMándale un pantallazo de esto a Felipe.\n' "$1"; exit 1; }
   [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
