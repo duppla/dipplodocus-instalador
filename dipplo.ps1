@@ -4,7 +4,7 @@
 # acepta la invitación a duppla si está pendiente y sigue con el instalador de verdad, que es privado (duppla-plugins).
 # Aquí no hay llaves ni datos. Nunca hace exit: cerraría la ventana y la persona no vería el error.
 & {
-  $VERSION = '2202b7cf47118173e6ba2c114c64b41df19bc8f4'  # commit del instalador privado en duppla-plugins: solo corre lo probado
+  $VERSION = '4a35b24de19ccbc5879f6a9564514b1e05a84574'  # commit del instalador privado en duppla-plugins: solo corre lo probado
   [Console]::OutputEncoding = [Text.Encoding]::UTF8  # lo que devuelve gh (el instalador, con tildes) llega bien
   function Para($m) { Write-Host "`n  x $m" -ForegroundColor Red; Write-Host '  Mándale un pantallazo de esto a Felipe.'; throw 'dipplo' }
   function Refrescar { $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User') }
