@@ -6,9 +6,9 @@
 # Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
 main() {
   set -o pipefail
-  VERSION=4f7a9f822b601466d1480e213bca6ceedde134b5  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+  VERSION=8bccbbf1631123de1d4b8a7a5bf001e582a54e5a  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
   CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
-  para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a Felipe.\n' "$1"; exit 1; }
+  para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a quien te mandó la línea.\n' "$1"; exit 1; }
   [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
   export DIPPLO_INICIO=$(date +%s)
   printf '\n\033[1;35m🦕 Instalando Dipplo\033[0m para \033[1m%s\033[0m. La primera vez tarda unos 10 minutos.\n' "$CUENTA"
