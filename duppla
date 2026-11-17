@@ -1,0 +1,187 @@
+#!/bin/bash
+# Instalador base de Duppla para Mac. Se pega UNA línea en la Terminal:
+#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/duppla)
+# Para solo revisar el Mac, sin instalar nada:
+#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/duppla) doctor
+# La cuenta @duppla.co no va en la línea: sale del login de Google (gcloud), como en dipplo-sesion.sh de la Mac mini.
+# Aquí no hay llaves ni datos. No clona repos: cada quien clona los suyos desde Claude Code. Se puede correr varias veces.
+# Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
+# Ojo: el bash del Mac es 3.2 (nada de arreglos asociativos ni ${x,,}).
+main() {
+  set -o pipefail
+  paso() { printf '\n\033[1;35m%s\033[0m\n' "$1"; }
+  ok() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
+  nota() { printf '  \033[2m· %s\033[0m\n' "$1"; }
+  aviso() { printf '  \033[33m! %s\033[0m\n' "$1"; }
+  para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a Jhonattan.\n' "$1"; exit 1; }
+  otra() { "$@" || { sleep 5; "$@"; } || { sleep 15; "$@"; }; }  # GitHub a veces se corta
+  # </dev/null: dentro del while de la revisión, un gh o un npm se comería la lista de chequeos.
+  callado() { "$@" </dev/null >/dev/null 2>&1; }
+  cargar_brew() { local b; for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do [ -x "$b" ] && eval "$("$b" shellenv)" && return 0; done; return 1; }
+  cargar_brew
+  export PATH="$HOME/.local/bin:$PATH"  # ahí deja Claude Code su binario
+
+  # La app de Tailscale trae su CLI adentro; si alguien lo instaló con la fórmula, se usa ese.
+  TS=/Applications/Tailscale.app/Contents/MacOS/Tailscale
+  ts() { if [ -x "$TS" ]; then "$TS" "$@"; else tailscale "$@"; fi; }
+
+  # Chequeos: cada uno sale bien o mal.
+  mayor() { "$@" 2>/dev/null | sed -E 's/^v?([0-9]+).*/\1/'; }
+  c_git() { git --version; }
+  c_gh() { gh --version; }
+  c_node() { [ "$(mayor node -v)" -ge 25 ]; }
+  c_npm() { [ "$(mayor npm -v)" -ge 11 ]; }
+  c_uv() { uv --version; }
+  c_jq() { jq --version; }
+  c_python() { python3 -c 'import sys; sys.exit(sys.version_info < (3, 8))'; }
+  c_gcloud() { gcloud --version; }
+  c_tailscale() { [ -x "$TS" ] || command -v tailscale; }
+  cuenta_google() { gcloud config get-value account 2>/dev/null | tr 'A-Z' 'a-z'; }
+  c_google() { [[ "$(cuenta_google)" =~ ^[a-z0-9._-]+@duppla\.co$ ]]; }
+  c_permiso() { gh auth status -h github.com 2>&1 | grep -q 'read:packages'; }
+  c_helper() { git config --get-urlmatch credential.helper https://github.com | grep -q 'gh auth git-credential'; }
+  c_miembro() { [ "$(gh api user/memberships/orgs/duppla --jq .state 2>/dev/null)" = active ]; }
+  c_plugins() { gh api repos/duppla/duppla-plugins; }
+  c_npm_duppla() { npm view '@duppla/http-base' version --registry=https://npm.pkg.github.com; }
+  c_correo() { git config --global user.email | grep -q '@duppla\.co$'; }
+  c_claude() { claude --version; }
+  c_core() { claude plugin list --json 2>/dev/null | grep -q 'duppla-core@duppla'; }
+  c_tailnet() { ts status --json 2>/dev/null | jq -e '.BackendState == "Running" and .CurrentTailnet.Name == "duppla.co"'; }
+
+  # chequeo:paquete de brew. python3 viene con las herramientas de línea de comandos que pide Homebrew;
+  # la fórmula es por si quedó una más vieja que 3.8.
+  FORMULAS="c_git:git c_gh:gh c_node:node c_uv:uv c_python:python c_jq:jq"
+  # gcloud de brew trae su propio Python: el instalado a mano puede usar el 3.9 del Mac y no arrancar.
+  CASKS="c_gcloud:gcloud-cli c_tailscale:tailscale-app"
+  faltan() { local p; for p in $1; do callado "${p%%:*}" || printf '%s ' "${p#*:}"; done; }
+
+  revisar() {
+    local pendientes=0 fn nombre
+    paso 'Revisión del Mac'
+    while IFS='|' read -r fn nombre; do
+      if callado "$fn"; then ok "$nombre"; else printf '  \033[31m✗\033[0m %s\n' "$nombre"; pendientes=$((pendientes + 1)); fi
+    done <<'LISTA'
+c_git|git
+c_gh|GitHub CLI
+c_node|Node 25 o más
+c_npm|npm 11 o más
+c_uv|uv
+c_jq|jq
+c_python|python3
+c_gcloud|gcloud
+c_google|Cuenta de Google @duppla.co
+c_permiso|Sesión de GitHub con read:packages
+c_helper|Git entra a GitHub con gh
+c_miembro|Miembro activo de duppla
+c_plugins|Acceso a duppla-plugins
+c_npm_duppla|Paquetes @duppla/*
+c_correo|Correo de git @duppla.co
+c_claude|Claude Code
+c_core|Plugin duppla-core
+c_tailnet|Tailscale en el tailnet de duppla
+LISTA
+    PENDIENTES=$pendientes
+  }
+
+  if [ "${1:-}" = doctor ]; then revisar; exit "$PENDIENTES"; fi
+
+  printf '\n\033[1;35mInstalando las herramientas de Duppla.\033[0m\n'
+
+  paso '1/7 Programas'
+  if ! command -v brew >/dev/null; then
+    printf '  \033[1;35mInstalando Homebrew: te pide la contraseña del Mac (no se ve mientras la escribes).\033[0m\n'
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || para 'No se pudo instalar Homebrew.'
+    cargar_brew || para 'Homebrew quedó instalado pero no lo encuentro. Cierra la Terminal, abre una nueva y vuelve a pegar la línea.'
+  fi
+  # que las Terminales nuevas encuentren brew, claude y lo demás
+  BREW_ENV="eval \"\$($(command -v brew) shellenv)\""
+  touch ~/.zprofile ~/.zshrc
+  grep -qF "$BREW_ENV" ~/.zprofile || echo "$BREW_ENV" >> ~/.zprofile
+  grep -q '.local/bin' ~/.zshrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+  F=$(faltan "$FORMULAS"); C=$(faltan "$CASKS")
+  if [ -n "$F$C" ]; then
+    nota "Falta instalar: $F$C(si pide la contraseña del Mac, es la de entrar al computador)."
+    [ -z "$F" ] || brew install $F || para "brew no pudo instalar: $F"
+    [ -z "$C" ] || brew install --cask $C || para "brew no pudo instalar: $C"
+    hash -r
+    F=$(faltan "$FORMULAS"); C=$(faltan "$CASKS")
+    [ -z "$F$C" ] || para "No quedó funcionando: $F$C. Cierra la Terminal, abre una nueva y vuelve a pegar la línea. Si es node, puede que nvm u otra versión vieja esté adelante en el PATH."
+  fi
+  ok 'Programas listos'
+
+  paso '2/7 Cuenta de Google'
+  if ! callado c_google; then
+    printf '  \033[1;35mSe abre el navegador: entra con tu cuenta de Google de Duppla (@duppla.co).\033[0m\n'
+    gcloud auth login --brief --quiet || para 'No se pudo entrar con Google.'
+  fi
+  CUENTA=$(cuenta_google)
+  [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "Entraste con \"$CUENTA\", que no es de Duppla. Vuelve a pegar la línea y entra con tu correo @duppla.co."
+  ok "Eres $CUENTA"
+
+  paso '3/7 GitHub'
+  if ! gh auth status -h github.com >/dev/null 2>&1; then
+    printf '  \033[1;35mEntra a GitHub con tu cuenta de Duppla: copia el código de 8 letras, dale Enter y pégalo en el navegador que se abre.\033[0m\n'
+    gh auth login -h github.com -p https -w -s read:packages || para 'No se pudo entrar a GitHub.'
+  elif ! callado c_permiso; then
+    printf '  \033[1;35mGitHub necesita un permiso más: copia el código de 8 letras, dale Enter y pégalo en el navegador que se abre.\033[0m\n'
+    gh auth refresh -h github.com -s read:packages || para 'No se pudo dar el permiso read:packages en GitHub.'
+  fi
+  YO=$(gh api user --jq .login 2>/dev/null)
+  if [ "$(gh api user/memberships/orgs/duppla --jq .state 2>/dev/null)" = pending ]; then
+    callado gh api -X PATCH user/memberships/orgs/duppla -f state=active \
+      || para 'Tienes una invitación de Duppla en GitHub sin aceptar y no pude aceptarla sola: ábrela en https://github.com/orgs/duppla/invitation, dale Join y vuelve a pegar la línea.'
+  fi
+  otra callado gh api repos/duppla/duppla-plugins \
+    || para "Tu GitHub (${YO:-sin sesión}) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login"
+  callado gh auth setup-git -h github.com
+  ok "Entraste como $YO"
+
+  paso '4/7 Identidad de git'
+  git config --global user.name "$(gh api user --jq '.name // .login' 2>/dev/null)"
+  git config --global user.email "$CUENTA"
+  ok "Tus commits quedan a nombre de $CUENTA"
+
+  paso '5/7 Paquetes @duppla/*'
+  # El scope global sirve en repos que no traen su .npmrc; los que lo traen dicen lo mismo.
+  callado npm config set '@duppla:registry' https://npm.pkg.github.com
+  # El token se reescribe solo si falla: así, volver a pegar la línea arregla un token rotado.
+  callado c_npm_duppla || callado npm config set "//npm.pkg.github.com/:_authToken=$(gh auth token)"
+  if callado c_npm_duppla; then ok 'npm ya puede bajar @duppla/*'; else aviso 'npm todavía no puede bajar @duppla/*.'; fi
+
+  paso '6/7 Tailscale'
+  if ! callado c_tailnet; then
+    open -a Tailscale 2>/dev/null
+    printf '  \033[1;35mSe abrió Tailscale (el ícono queda arriba, en la barra del menú).\033[0m\n'
+    printf '  Si el Mac pregunta, dale Permitir a la configuración de VPN. Entra con %s y vuelve aquí.\n' "$CUENTA"
+    for intento in 1 2; do
+      printf '  Cuando hayas entrado, dale Enter... '; read -r _
+      callado c_tailnet && break
+    done
+  fi
+  if callado c_tailnet; then ok 'Conectado al tailnet de Duppla'; else aviso 'No quedaste conectado al tailnet de Duppla: sin eso no se llega a Northflank.'; fi
+  callado ts set --auto-update || aviso 'Tailscale no quedó con actualización automática.'
+
+  paso '7/7 Claude Code'
+  if ! callado c_claude; then
+    curl -fsSL https://claude.ai/install.sh | bash -s stable >/dev/null 2>&1
+    hash -r
+    callado c_claude || para 'No se pudo instalar Claude Code.'
+  fi
+  callado claude plugin marketplace add duppla/duppla-plugins  # si ya estaba, no hace nada
+  otra callado claude plugin marketplace update duppla
+  # Sin duppla-core no existe /duppla-core:setup, que es lo que se le dice a la persona al final.
+  callado c_core || otra callado claude plugin install duppla-core@duppla
+  if callado c_core; then ok 'Claude Code con duppla-core'; else aviso 'No pude instalar duppla-core desde el marketplace de Duppla.'; fi
+
+  revisar
+  if [ "$PENDIENTES" -gt 0 ]; then
+    printf '\n\033[33mQuedaron %s pendientes.\033[0m Vuelve a pegar la línea; si siguen, mándale un pantallazo de esto a Jhonattan.\n' "$PENDIENTES"
+  else
+    printf '\n\033[1;32m✓ Listo.\033[0m Ahora:\n'
+    printf '  1. Cierra la Terminal y abre una nueva.\n'
+    printf '  2. Entra a la carpeta donde quieras trabajar, escribe \033[1mclaude\033[0m y entra con tu cuenta de Claude.\n'
+    printf '  3. Escribe \033[1m/duppla-core:setup\033[0m y después dile: \033[1mclona el repo <nombre>\033[0m\n'
+  fi
+  exit "$PENDIENTES"
+}
+main "$@"
