@@ -7,7 +7,7 @@
 # Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
 main() {
   set -o pipefail
-  VERSION=fd78a8665fe86a85fc76bdd12bc0426e9fb767e1  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+  VERSION=cab7ccc7e417ef62981b3f8a7384d484e5ab3bb4  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
   para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a quien te mandó la línea.\n' "$1"; exit 1; }
   CUENTA=$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z' | tr -d '[:space:]<>')
   # Sin correo, o con el de ejemplo (tucorreo, <cuenta>): se pregunta, así la línea se pega tal cual sin editarla
