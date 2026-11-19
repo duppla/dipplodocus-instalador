@@ -19,7 +19,7 @@ main() {
   [[ -z "$CUENTA" || "$CUENTA" == *@* ]] || CUENTA="$CUENTA@duppla.co"  # «nombre» basta
   [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
   export DIPPLO_INICIO=$(date +%s)
-  printf '\n\033[1;35m🦕 Instalando Dipplo\033[0m para \033[1m%s\033[0m. La primera vez tarda unos 10 minutos.\n' "$CUENTA"
+  printf '\n\033[1;32m🦕 Instalando Dipplo\033[0m para \033[1m%s\033[0m. La primera vez tarda unos 5 minutos.\n' "$CUENTA"
 
   if ! command -v brew >/dev/null; then
     printf '\033[1;35mInstalando Homebrew: te pide la contraseña del Mac (no se ve mientras la escribes).\033[0m\n'
