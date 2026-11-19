@@ -6,7 +6,7 @@
 # Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
 main() {
   set -o pipefail
-  VERSION=8bccbbf1631123de1d4b8a7a5bf001e582a54e5a  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+  VERSION=557c0f0fbcf3998a51bec454caedfb71e02bbe3e  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
   CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
   para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a quien te mandó la línea.\n' "$1"; exit 1; }
   [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
@@ -32,7 +32,7 @@ main() {
   otra() { "$@" || { sleep 5; "$@"; } || { sleep 15; "$@"; }; }  # GitHub a veces se corta
   otra gh api repos/duppla/duppla-plugins >/dev/null 2>&1 \
     || para "Tu GitHub (${YO:-sin sesión}) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login"
-  INSTALADOR=$(otra gh api -H "Accept: application/vnd.github.raw" "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalador/instalar.sh?ref=$VERSION") \
+  INSTALADOR=$(otra gh api -H "Accept: application/vnd.github.raw" "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo/instalador/instalar.sh?ref=$VERSION") \
     || para "No se pudo bajar el instalador de Dipplo. Revisa el internet o la VPN y vuelve a pegar la línea."
   DIPPLO_VERSION="$VERSION" bash -c "$INSTALADOR" instalar "$CUENTA"  # mismo commit para las herramientas
 }
