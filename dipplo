@@ -1,14 +1,22 @@
 #!/bin/bash
 # Primer pedacito, público, del instalador de Dipplo. Se corre con UNA línea en la Terminal:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/dipplo) <cuenta>@duppla.co
+#   bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo)
+# (sin correo, pregunta; con correo al final, no pregunta; main solo trae lo probado)
 # Trae Homebrew y gh si faltan, entra a GitHub, acepta la invitación a duppla si está pendiente y sigue con el
 # instalador de verdad, que es privado (duppla-plugins). Aquí no hay llaves ni datos.
 # Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
 main() {
   set -o pipefail
   VERSION=557c0f0fbcf3998a51bec454caedfb71e02bbe3e  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
-  CUENTA=$(printf '%s' "${1:?falta tu cuenta @duppla.co al final de la línea}" | tr 'A-Z' 'a-z')
   para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a quien te mandó la línea.\n' "$1"; exit 1; }
+  CUENTA=$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z' | tr -d '[:space:]<>')
+  # Sin correo, o con el de ejemplo (tucorreo, <cuenta>): se pregunta, así la línea se pega tal cual sin editarla
+  case "$CUENTA" in ""|tucorreo|tucorreo@*|cuenta|cuenta@*)
+    printf '\n\033[1mTu correo de Duppla\033[0m (por ejemplo nombre@duppla.co): ' >/dev/tty
+    read -r CUENTA </dev/tty || para "No pude leer tu correo: vuelve a pegar la línea."
+    CUENTA=$(printf '%s' "$CUENTA" | tr 'A-Z' 'a-z' | tr -d '[:space:]<>') ;;
+  esac
+  [[ -z "$CUENTA" || "$CUENTA" == *@* ]] || CUENTA="$CUENTA@duppla.co"  # «nombre» basta
   [[ "$CUENTA" =~ ^[a-z0-9._-]+@duppla\.co$ ]] || para "La cuenta \"$CUENTA\" no es una cuenta @duppla.co válida."
   export DIPPLO_INICIO=$(date +%s)
   printf '\n\033[1;35m🦕 Instalando Dipplo\033[0m para \033[1m%s\033[0m. La primera vez tarda unos 10 minutos.\n' "$CUENTA"

@@ -5,10 +5,10 @@ Instaladores de las herramientas internas de Duppla, en una línea. Este repo es
 Dipplo en Mac (en la Terminal):
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo) <cuenta>@duppla.co
+bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo)
 ```
 
-Esta línea no cambia nunca: `main` solo trae la última versión probada (el `VERSION` de `dipplo` fija el instalador privado a un commit probado). Para publicar una versión nueva se cambia ese `VERSION`, no la línea.
+Se pega tal cual: pregunta el correo de Duppla (basta el nombre, sin `@duppla.co`). Esta línea no cambia nunca: `main` solo trae la última versión probada (el `VERSION` de `dipplo` fija el instalador privado a un commit probado). Para publicar una versión nueva se cambia ese `VERSION`, no la línea.
 
 Dipplo en Windows (en PowerShell; `irm | iex` no recibe argumentos, por eso la cuenta va antes):
 
