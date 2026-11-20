@@ -10,10 +10,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duppla/dipplodocus-instalado
 
 Se pega tal cual, sin escribir nada: la cuenta de Duppla sale del login de Google. Esta línea no cambia nunca: `main` solo trae la última versión probada (el `VERSION` de `dipplo` fija el instalador privado a un commit probado). Para publicar una versión nueva se cambia ese `VERSION`, no la línea.
 
-Dipplo en Windows (en PowerShell; `irm | iex` no recibe argumentos, por eso la cuenta va antes):
+Dipplo en Windows (en PowerShell):
 
 ```
-$env:DIPPLO_CUENTA='<cuenta>@duppla.co'; irm https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/dipplo.ps1 | iex
+irm https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo.ps1 | iex
 ```
 
-La de Windows sigue apuntando a un commit fijo (Dipplo 0.7.1) hasta probar la versión nueva en un Windows; entonces pasa a `main` como la de Mac. Dipplodocus manda la línea por DM con `dipplodocus/scripts/instalar_dipplo_por_dm.py`.
+Sin cuenta, como la de Mac: sale del login de Google. Esta línea aplica cuando se publique la versión nueva de `dipplo.ps1`; mientras tanto la de Windows sigue apuntando a un commit fijo (Dipplo 0.7.1) hasta probarla en un Windows. Dipplodocus manda la línea por DM con `dipplodocus/scripts/instalar_dipplo_por_dm.py`.

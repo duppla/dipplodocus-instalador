@@ -1,29 +1,35 @@
 # Primer pedacito, público, del instalador de Dipplo para Windows. Se pega UNA línea en PowerShell:
-#   $env:DIPPLO_CUENTA='<cuenta>@duppla.co'; irm https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/dipplo.ps1 | iex
-# (irm | iex no recibe argumentos: la cuenta va en DIPPLO_CUENTA.) Trae Git y gh con winget si faltan, entra a GitHub,
+#   irm https://raw.githubusercontent.com/duppla/dipplodocus-instalador/<commit>/dipplo.ps1 | iex
+# (sin correo: la cuenta sale de Google; si llega DIPPLO_CUENTA de una línea vieja, se ignora.) Trae Git y gh con winget si faltan, entra a GitHub,
 # acepta la invitación a duppla si está pendiente y sigue con el instalador de verdad, que es privado (duppla-plugins).
 # Aquí no hay llaves ni datos. Nunca hace exit: cerraría la ventana y la persona no vería el error.
 & {
-  $VERSION = '8bccbbf1631123de1d4b8a7a5bf001e582a54e5a'  # commit del instalador privado en duppla-plugins: solo corre lo probado
+  $VERSION = 'b1d5e27451eb45abaa74cd1b7fea9121e6e7f0e5'  # commit del instalador privado en duppla-plugins: solo corre lo probado
   [Console]::OutputEncoding = [Text.Encoding]::UTF8  # lo que devuelve gh (el instalador, con tildes) llega bien
   function Para($m) { Write-Host "`n  x $m" -ForegroundColor Red; Write-Host '  Mándale un pantallazo de esto a quien te mandó la línea.'; throw 'dipplo' }
   function Refrescar { $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User') }
   function Otra([scriptblock]$b) { foreach ($s in 0, 5, 15) { Start-Sleep $s; $r = & $b; if ($LASTEXITCODE -eq 0) { return $r } } }  # GitHub a veces se corta
-  function Instalar($cmd, $id) {
+  # $dirs: dónde deja el programa su comando si winget no lo puso en el PATH de esta ventana
+  function Instalar($cmd, $id, $dirs = @()) {
     if (Get-Command $cmd -ErrorAction SilentlyContinue) { return }
     Write-Host "  · Instalando $id (si Windows pregunta si permites cambios, dale Sí)" -ForegroundColor DarkGray
-    winget install --id $id -e --silent --accept-package-agreements --accept-source-agreements | Out-Null
-    Refrescar
-    if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { Para "No se pudo instalar $id. Cierra PowerShell, ábrelo de nuevo y vuelve a pegar la línea." }
+    $s = @(winget install --id $id -e --source winget --silent --accept-package-agreements --accept-source-agreements 2>&1 | ForEach-Object { "$_" })
+    $c = $LASTEXITCODE
+    Refrescar  # si ya estaba instalado winget sale con código ≠ 0: lo que cuenta es que el comando aparezca
+    foreach ($d in $dirs) { if (-not (Get-Command $cmd -ErrorAction SilentlyContinue) -and (Test-Path $d)) { $env:Path += ";$d" } }
+    if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+      $log = Join-Path $env:USERPROFILE '.dipplo-instalar.log'
+      Set-Content $log "winget install $id (código $c)`n$($s -join "`n")"
+      Write-Host ($s | Select-Object -Last 6 | Out-String) -ForegroundColor DarkGray
+      Para "No se pudo instalar $id (winget salió con código $c; detalle en $log). Cierra PowerShell, ábrelo de nuevo y vuelve a pegar la línea."
+    }
   }
   try {
-    $CUENTA = "$env:DIPPLO_CUENTA".Trim().ToLower()
-    if ($CUENTA -notmatch '^[a-z0-9._-]+@duppla\.co$') { Para "La cuenta `"$CUENTA`" no es una cuenta @duppla.co válida. Pega la línea completa, con tu cuenta adentro." }
     $global:DIPPLO_INICIO = Get-Date
-    Write-Host "`nInstalando Dipplo" -ForegroundColor Magenta -NoNewline; Write-Host " para $CUENTA. La primera vez tarda unos 15 minutos."
+    Write-Host "`nInstalando Dipplo" -ForegroundColor Green -NoNewline; Write-Host '. La primera vez tarda unos 15 minutos.'
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Para 'Falta winget: instala «App Installer» desde la Microsoft Store y vuelve a pegar la línea.' }
-    Instalar git Git.Git
-    Instalar gh GitHub.cli
+    Instalar git Git.Git "$env:ProgramFiles\Git\cmd", "$env:LOCALAPPDATA\Programs\Git\cmd"
+    Instalar gh GitHub.cli "$env:ProgramFiles\GitHub CLI", "$env:LOCALAPPDATA\Programs\GitHub CLI"
     gh auth status -h github.com 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
       Write-Host 'Entra a GitHub con tu cuenta de Duppla: copia el código de 8 letras y pégalo en el navegador.' -ForegroundColor Magenta
@@ -38,10 +44,10 @@
     }
     Otra { gh api repos/duppla/duppla-plugins 2>$null | Out-Null } | Out-Null
     if ($LASTEXITCODE -ne 0) { Para "Tu GitHub ($YO) todavía no tiene acceso a Duppla. Si ese no es tu usuario de Duppla, escribe: gh auth login" }
-    $inst = Otra { gh api -H 'Accept: application/vnd.github.raw' "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo-v1/instalador/instalar.ps1?ref=$VERSION" 2>$null }
+    $inst = Otra { gh api -H 'Accept: application/vnd.github.raw' "repos/duppla/duppla-plugins/contents/plugins/duppla-dipplo/instalador/instalar.ps1?ref=$VERSION" 2>$null }
     if ($LASTEXITCODE -ne 0 -or -not $inst) { Para 'No se pudo bajar el instalador de Dipplo. Revisa el internet o la VPN y vuelve a pegar la línea.' }
     $env:DIPPLO_VERSION = $VERSION  # mismo commit para el plugin y las herramientas
-    & ([scriptblock]::Create(($inst -join "`n"))) $CUENTA
+    & ([scriptblock]::Create(($inst -join "`n")))
   } catch {
     if ("$_" -ne 'dipplo') { Write-Host "`n$_" -ForegroundColor Red; Write-Host 'Mándale un pantallazo de esto a Felipe.' }
   }
