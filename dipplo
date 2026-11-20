@@ -7,7 +7,7 @@
 # Todo va dentro de main y se llama en la última línea: si la descarga se corta a mitad, bash no corre un pedazo.
 main() {
   set -o pipefail
-  VERSION=d30151de90ee3998d82f41008c118281c845afdb  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
+  VERSION=9648f03d3ace8f4466ec6baae8382b1c302e4d23  # commit del instalador privado en duppla-plugins (ahí no se pueden crear tags): solo corre lo probado
   para() { printf '\n  \033[1;31m✗ %s\033[0m\n  Mándale un pantallazo de esto a quien te mandó la línea.\n' "$1"; exit 1; }
   export DIPPLO_INICIO=$(date +%s)
   printf '\n\033[1;32m🦕 Instalando Dipplo\033[0m. La primera vez tarda unos 5 minutos.\n'
