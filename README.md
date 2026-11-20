@@ -16,4 +16,4 @@ Dipplo en Windows (en PowerShell):
 irm https://raw.githubusercontent.com/duppla/dipplodocus-instalador/main/dipplo.ps1 | iex
 ```
 
-Sin cuenta, como la de Mac: sale del login de Google. Esta línea aplica cuando se publique la versión nueva de `dipplo.ps1`; mientras tanto la de Windows sigue apuntando a un commit fijo (Dipplo 0.7.1) hasta probarla en un Windows. Dipplodocus manda la línea por DM con `dipplodocus/scripts/instalar_dipplo_por_dm.py`.
+Sin cuenta, como la de Mac: sale del login de Google, y `main` solo trae la versión probada (el `VERSION` de `dipplo.ps1`). Antes de publicar, la prueba automática de duppla-plugins la corre en un Windows real (PowerShell 5.1 y 7). Dipplodocus manda la línea por DM con `dipplodocus/scripts/instalar_dipplo_por_dm.py`.
